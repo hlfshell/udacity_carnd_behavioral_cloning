@@ -11,30 +11,49 @@ from keras.models import Sequential
 
 batch_size = 24
 epochs = 3
-dropout_rate = 0.7
+dropout_rate = 0.3
 
-straight_limit = 0.85
-straight_drop_percentage = 0.7
+straight_limit = 0.90
+straight_drop_percentage = 0.8
 
-side_camera_correction = 0.2
+side_camera_correction = 0.25
 
-#read the samples from the csv and append them to our dataset
-#note - we have a STRONG bias towards going straight, so I am dropping
-#a percentage of data that has below a certain turning amount via
-#straight_limit and straight_drop_percentage
-samples = []
+base_path = "./data/"
+
+samples_to_use = [ \
+    "course_1",\
+    "course_1_reverse",\
+    # "course_2",\
+    # "course_2_reverse",\
+    "course_1_dirt_turn_straight",\
+    "course_1_extreme_right_water_straight",\
+    "course_1_extreme_corrections"\
+]
+
 dropped_data = 0
-with open("./data/driving_log.csv") as csvfile:
-    reader = csv.reader(csvfile)
-    for line in reader:
-        steering_angle = abs(float(line[3]))
-        if(steering_angle <= straight_limit):
-            if(random() >= straight_drop_percentage):
-                samples.append(line)
+
+def load_sample_data(path_to_samples):
+    global dropped_data
+    samples = []
+    with open(path_to_samples + "/driving_log.csv") as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            steering_angle = abs(float(line[3]))
+            if(steering_angle <= straight_limit):
+                if(random() >= straight_drop_percentage):
+                    samples.append(line)
+                else:
+                    dropped_data += 1
             else:
-                dropped_data += 1
-        else:
-            samples.append(line)
+                samples.append(line)
+
+    print("Total of {0} samples loaded for {1}".format(len(samples), path_to_samples))
+    return samples
+
+samples = []
+
+for sample_path in samples_to_use:
+    samples.extend(load_sample_data(base_path + sample_path))
 
 print("Total of {0} samples, with {1} data points dropped".format(len(samples), dropped_data))
 
@@ -49,14 +68,14 @@ def generator(samples):
 
             for sample in batch_samples:
                 source_path = sample[0]
-                filename = source_path.split('/')[-1]
-                current_path = './data/IMG/' + filename
+                # filename = source_path.split('/')[-1]
+                # current_path = './data/IMG/' + filename
 
-                center_image = cv2.imread(current_path)
+                center_image = cv2.imread(source_path)
                 center_image = cv2.cvtColor(center_image, cv2.COLOR_BGR2RGB)
                 images.append(center_image)
 
-                angle = float(line[3])
+                angle = float(sample[3])
                 steering_angles.append(angle)
 
                 #Flip the center image
@@ -66,9 +85,9 @@ def generator(samples):
 
                 #Handle the left camera image
                 source_path = sample[1]
-                filename = source_path.split('/')[-1]
-                current_path = './data/IMG/' + filename 
-                left_image = cv2.imread(current_path)
+                # filename = source_path.split('/')[-1]
+                # current_path = './data/IMG/' + filename 
+                left_image = cv2.imread(source_path)
                 left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
                 images.append(left_image)
 
@@ -82,9 +101,9 @@ def generator(samples):
 
                 #Handle the right camera image
                 source_path = sample[2]
-                filename = source_path.split('/')[-1]
-                current_path = './data/IMG/' + filename 
-                right_image = cv2.imread(current_path)
+                # filename = source_path.split('/')[-1]
+                # current_path = './data/IMG/' + filename 
+                right_image = cv2.imread(source_path)
                 right_image = cv2.cvtColor(right_image, cv2.COLOR_BGR2RGB)
                 images.append(right_image)
 
@@ -125,8 +144,14 @@ model.add(Lambda(lambda x: (x / 255) - 0.5))
 #Now we do the convolutional networks
 #The first three convolutional layers have a 5x5 kernel w/ a 2x2 stride 
 model.add(Conv2D(24, 5, 5, subsample = (2, 2), activation='relu'))
+if dropout_rate is not None:
+    model.add(Dropout(dropout_rate))
 model.add(Conv2D(36, 5, 5, subsample = (2, 2), activation='relu'))
+if dropout_rate is not None:
+    model.add(Dropout(dropout_rate))
 model.add(Conv2D(48, 5, 5, subsample = (2, 2), activation='relu'))
+if dropout_rate is not None:
+    model.add(Dropout(dropout_rate))
 
 #The last three are non strided 3x3 kernel size conv nets
 model.add(Conv2D(64, 3, 3, activation='relu'))
@@ -136,12 +161,8 @@ model.add(Conv2D(64, 3, 3, activation='relu'))
 model.add(Flatten())
 
 # Now we go through our fully connected layers
-# model.add(Dense(1164))
-# model.add(Dropout(dropout_rate))
 model.add(Dense(100))
-# model.add(Dropout(dropout_rate))
 model.add(Dense(50))
-# model.add(Dropout(dropout_rate))
 model.add(Dense(10))
 model.add(Dense(1))
 
