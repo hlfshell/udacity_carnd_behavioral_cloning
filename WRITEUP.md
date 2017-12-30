@@ -39,13 +39,13 @@ I employed various strategies in data collection for overfitting battling (not j
 
 I also added the aforementioned dropout layers between convolutional layers. I set the dropout percentage to about 30% (after playing with a few percentages). A higher dropout didn't make much sense with the low amount of epochs I was running, but I still needed some dropout to prevent certain convolutional features biasing too strong a reaction within the network.
 
-### 3. Model parameter tuning
+### Model parameter tuning
 
 The adam optimizer was used - learning rate was not manually adjusted.
 
 Dropout rate was tested at first at 70% and down turned from there. I had discovered prior that a shorter amount of epochs were better (discussed earlier). Eventually 30% seemed to reduce the overfitting without losing performance.
 
-## 4. Model Training and Data Gathering strategies
+## Model Training and Data Gathering strategies
 
 ### Garbage in, garbage out
 
