@@ -1,5 +1,6 @@
 # Behaviorial Cloning Project
 
+Note - to see a video of the neural network in action (low quality) click [here](https://www.youtube.com/watch?v=OkTmC32dEcA).
 
 Overview
 ---
